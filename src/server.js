@@ -144,6 +144,6 @@ app.get('/api/instructor/courses', authenticate, requireRole('instructor', 'admi
   return res.json({ courses: ['CS101 – Intro to Programming', 'CS301 – Data Structures'] });
 });
 
-const PORT = 3003;
+const PORT = 3000;
 app.listen(PORT, () => console.log(`OLMS Auth Server running on http://localhost:${PORT}`));
 module.exports = app;
