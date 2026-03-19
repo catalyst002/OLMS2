@@ -21,7 +21,7 @@ npm install
 
 # 2. Start the server
 npm start
-# → Server running at http://localhost:3000
+# → Server running at http://localhost:3003
 
 # 3. Open the UI
 # Navigate to http://localhost:3000 in your browser
