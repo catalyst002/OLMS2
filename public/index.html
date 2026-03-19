@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OLMS – Authentication Prototype</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh;
+           display: flex; align-items: center; justify-content: center; }
+    .container { background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+                 width: 100%; max-width: 440px; padding: 2.5rem 2rem; }
+    .logo { text-align: center; margin-bottom: 1.5rem; }
+    .logo h1 { font-size: 1.6rem; color: #1a3a6c; }
+    .logo p  { font-size: 0.85rem; color: #666; margin-top: 2px; }
+    .tabs { display: flex; border-bottom: 2px solid #e0e7ef; margin-bottom: 1.5rem; }
+    .tab { flex: 1; text-align: center; padding: 0.6rem; cursor: pointer; color: #555;
+           font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.2s; }
+    .tab.active { color: #1a3a6c; border-bottom-color: #1a3a6c; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.85rem; color: #333; margin-bottom: 4px; font-weight: 500; }
+    input, select { width: 100%; padding: 0.6rem 0.8rem; border: 1.5px solid #cbd5e1;
+                    border-radius: 7px; font-size: 0.95rem; transition: border-color 0.2s; outline: none; }
+    input:focus, select:focus { border-color: #1a3a6c; }
+    .error-hint { font-size: 0.75rem; color: #c0392b; margin-top: 3px; display: none; }
+    .error-hint.visible { display: block; }
+    button[type="submit"] { width: 100%; padding: 0.75rem; background: #1a3a6c; color: #fff;
+                            border: none; border-radius: 7px; font-size: 1rem; font-weight: 600;
+                            cursor: pointer; margin-top: 0.5rem; transition: background 0.2s; }
+    button[type="submit"]:hover { background: #14305a; }
+    button[type="submit"]:disabled { background: #aaa; cursor: not-allowed; }
+    .alert { padding: 0.75rem 1rem; border-radius: 7px; font-size: 0.88rem; margin-top: 1rem; display: none; }
+    .alert.show { display: block; }
+    .alert.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .alert.error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    #dashboard { display: none; text-align: center; }
+    .role-badge { display: inline-block; padding: 0.3rem 0.9rem; border-radius: 20px;
+                  font-size: 0.8rem; font-weight: 700; text-transform: uppercase; margin: 0.5rem 0 1rem; }
+    .role-badge.student    { background: #d1f0e0; color: #1a6b3c; }
+    .role-badge.instructor { background: #fde8d0; color: #7b3600; }
+    .role-badge.admin      { background: #e8d0fe; color: #4a235a; }
+    .menu-links { list-style: none; margin: 1rem 0; text-align: left; }
+    .menu-links li { padding: 0.6rem 0.8rem; border-radius: 6px; margin-bottom: 0.4rem;
+                     background: #f0f4f8; color: #1a3a6c; cursor: pointer; font-weight: 500; }
+    .menu-links li:hover { background: #dce8f9; }
+    .logout-btn { background: none; border: 1.5px solid #c0392b; color: #c0392b;
+                  border-radius: 7px; padding: 0.5rem 1.2rem; font-weight: 600; cursor: pointer; margin-top: 0.5rem; }
+    .logout-btn:hover { background: #f8d7da; }
+    .password-req { font-size: 0.75rem; color: #666; margin-top: 4px; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div id="authSection">
+    <div class="logo">
+      <h1>OLMS</h1>
+      <p>Online Learning Management System</p>
+    </div>
+    <div class="tabs">
+      <div class="tab active" id="loginTab" onclick="switchTab('login')">Sign In</div>
+      <div class="tab" id="registerTab" onclick="switchTab('register')">Register</div>
+    </div>
+
+    <!-- Login -->
+    <div id="loginForm">
+      <div class="form-group">
+        <label for="loginEmail">Email Address</label>
+        <input type="email" id="loginEmail" placeholder="you@university.edu" />
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••"
+               onkeydown="if(event.key==='Enter') handleLogin()" />
+      </div>
+      <button type="submit" id="loginBtn" onclick="handleLogin()">Sign In</button>
+      <div class="alert" id="loginAlert"></div>
+      <p style="font-size:0.78rem;color:#999;margin-top:12px;text-align:center">
+        Demo: admin@olms.edu / Admin@1234<br>
+        or prof@olms.edu / Prof@1234
+      </p>
+    </div>
+
+    <!-- Register -->
+    <div id="registerForm" style="display:none">
+      <div class="form-group">
+        <label for="regName">Full Name</label>
+        <input type="text" id="regName" placeholder="Jane Doe" />
+      </div>
+      <div class="form-group">
+        <label for="regEmail">Email Address</label>
+        <input type="email" id="regEmail" placeholder="you@university.edu" />
+        <span class="error-hint" id="emailHint">Please enter a valid email address.</span>
+      </div>
+      <div class="form-group">
+        <label for="regPassword">Password</label>
+        <input type="password" id="regPassword" placeholder="••••••••" />
+        <span class="password-req">Min 8 characters, one uppercase letter, one digit.</span>
+        <span class="error-hint" id="pwHint">Password does not meet requirements.</span>
+      </div>
+      <div class="form-group">
+        <label for="regRole">I am a...</label>
+        <select id="regRole">
+          <option value="student">Student</option>
+          <option value="instructor">Instructor</option>
+        </select>
+      </div>
+      <button type="submit" id="registerBtn" onclick="handleRegister()">Create Account</button>
+      <div class="alert" id="registerAlert"></div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard">
+    <div class="logo"><h1>OLMS</h1></div>
+    <p id="welcomeMsg" style="font-size:1.1rem;font-weight:600;color:#1a3a6c;"></p>
+    <span class="role-badge" id="roleBadge"></span>
+    <ul class="menu-links" id="menuLinks"></ul>
+    <button class="logout-btn" onclick="handleLogout()">Log Out</button>
+  </div>
+
+</div>
+<script>
+  const API = '';
+
+  function switchTab(tab) {
+    document.getElementById('loginForm').style.display    = tab === 'login'    ? '' : 'none';
+    document.getElementById('registerForm').style.display = tab === 'register' ? '' : 'none';
+    document.getElementById('loginTab').classList.toggle('active',    tab === 'login');
+    document.getElementById('registerTab').classList.toggle('active', tab === 'register');
+    ['loginAlert','registerAlert'].forEach(id => {
+      const el = document.getElementById(id);
+      el.className = 'alert'; el.textContent = '';
+    });
+  }
+
+  function showAlert(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = 'alert show ' + type;
+  }
+
+  function validateEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+  function validatePassword(p) { return /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(p); }
+
+  async function handleLogin() {
+    const email    = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) { showAlert('loginAlert', 'Please enter your email and password.', 'error'); return; }
+
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true; btn.textContent = 'Signing in...';
+
+    try {
+      const res  = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showAlert('loginAlert', data.error || 'Login failed.', 'error');
+      } else {
+        localStorage.setItem('olms_token', data.token);
+        showDashboard(data);
+      }
+    } catch (e) {
+      showAlert('loginAlert', 'Cannot reach server. Is the Node.js server running?', 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Sign In';
+    }
+  }
+
+  async function handleRegister() {
+    const name     = document.getElementById('regName').value.trim();
+    const email    = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const role     = document.getElementById('regRole').value;
+
+    let valid = true;
+    document.getElementById('emailHint').classList.remove('visible');
+    document.getElementById('pwHint').classList.remove('visible');
+    if (!validateEmail(email))    { document.getElementById('emailHint').classList.add('visible'); valid = false; }
+    if (!validatePassword(password)) { document.getElementById('pwHint').classList.add('visible');   valid = false; }
+    if (!valid) return;
+
+    const btn = document.getElementById('registerBtn');
+    btn.disabled = true; btn.textContent = 'Creating account...';
+
+    try {
+      const res  = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showAlert('registerAlert', data.error || 'Registration failed.', 'error');
+      } else {
+        showAlert('registerAlert', 'Account created! Signing you in...', 'success');
+        setTimeout(() => {
+          document.getElementById('loginEmail').value    = email;
+          document.getElementById('loginPassword').value = password;
+          switchTab('login');
+          handleLogin();
+        }, 1200);
+      }
+    } catch (e) {
+      showAlert('registerAlert', 'Cannot reach server.', 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create Account';
+    }
+  }
+
+  function showDashboard(data) {
+    document.getElementById('authSection').style.display = 'none';
+    document.getElementById('dashboard').style.display   = 'block';
+
+    // Handle both response shapes:
+    // POST /api/login  -> { message, token, user:{name,role}, links:[] }
+    // GET  /api/dashboard -> { message, role, links:[] }  (no nested user)
+    const name  = (data.user && data.user.name) || data.name  || 'User';
+    const role  = (data.user && data.user.role) || data.role  || 'student';
+    const links = Array.isArray(data.links) ? data.links : [];
+
+    document.getElementById('welcomeMsg').textContent = data.message || ('Welcome, ' + name + '!');
+    const badge = document.getElementById('roleBadge');
+    badge.textContent = role;
+    badge.className   = 'role-badge ' + role;
+
+    const ul = document.getElementById('menuLinks');
+    ul.innerHTML = '';
+    if (links.length === 0) {
+      const li = document.createElement('li');
+      li.textContent = '(No menu items — check server response)';
+      li.style.color = '#999';
+      ul.appendChild(li);
+    } else {
+      links.forEach(link => {
+        const li = document.createElement('li');
+        li.textContent = link;
+        ul.appendChild(li);
+      });
+    }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('olms_token');
+    document.getElementById('dashboard').style.display   = 'none';
+    document.getElementById('authSection').style.display = '';
+    document.getElementById('loginEmail').value    = '';
+    document.getElementById('loginPassword').value = '';
+    ['loginAlert','registerAlert'].forEach(id => {
+      const el = document.getElementById(id); el.className = 'alert'; el.textContent = '';
+    });
+  }
+
+  // Auto-login from stored token
+  (async () => {
+    const token = localStorage.getItem('olms_token');
+    if (!token) return;
+    try {
+      const res = await fetch('/api/dashboard', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (res.ok) {
+        const data = await res.json();
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        showDashboard({ ...data, user: { name: payload.name, role: payload.role } });
+      } else {
+        localStorage.removeItem('olms_token');
+      }
+    } catch { localStorage.removeItem('olms_token'); }
+  })();
+</script>
+</body>
+</html>
